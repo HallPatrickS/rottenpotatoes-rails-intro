@@ -12,27 +12,68 @@ class MoviesController < ApplicationController
 
   def index
     @movies = Movie.all
-
-    @sort = params[:sort] || session[:sort]
-    @ratings = params[:ratings] || session[:ratings]
-
     @all_ratings = Movie.ratings
-
-    if @sort
-      session[:sort] = @sort
-      @movies = Movie.order(@sort.to_sym) # DB order command
+    redirect = false
+    
+    if params[:sort]
+      @sort = params[:sort]
+      session[:sort_by] = params[:sort]
+    elsif session[:sort] = params[:sort]
+      @sort = session[:sort]
+      # redirect = true
+    else
+      @sort = nil
     end
 
-    if @ratings
+    if params[:commit] == "Refresh" and params[:ratings].nil?
+      @ratings = nil
+      session[:ratings] = nil
+    elsif params[:ratings]
+      @ratings = params[:ratings]
+      session[:ratings] = params[:ratings]
+    elsif session[:ratings]
+      @ratings = session[:ragtings]
+      # redirect = true
+    else
+      @ratings = nil
+    end
+
+    if redirect
+      flash.keep
+      redirect_to movies_path :sort_by=>@sort_by, :ratings=>@ratings
+    end
+
+    # @sort = params[:sort] || session[:sort]
+    # @ratings = params[:ratings] || session[:ratings]
+
+    # @all_ratings = Movie.ratings
+
+    if @sort and @ratings
+      session[:sort] = @sort
+      session[:ratings] = @ratings
+      # @movies = Movie.where(rating: @ratings.keys).find(:all, :order => (@sort))
+      @movies = Movie.where(:rating => @ratings.keys).find(:all, :order => (@sort))
+      # @movies = Movie.order(@sort.to_sym) # DB order command
+    elsif @ratings
       session[:ratings] = @ratings
       @movies = Movie.where(rating: @ratings.keys)
+    # end
+    elsif @sort
+      session[:sort] = @sort
+      @movies = Movie.order(@sort.to_sym) # DB order command
+    else
+      @movies = Movie.all
+    end
+    if !@ratings
+      @ratings = Hash.new
     end
 
-    if params[:sort] != session[:sort] or params[:ratings] != session[:ratings]
-      session[:sort] = @sort
-      session[:ratings] = @ratings
-      redirect_to(sort: @sort, ratings: @ratings) and return
-    end
+
+    # if params[:sort] != session[:sort] or params[:ratings] != session[:ratings]
+      # session[:sort] = @sort
+      # session[:ratings] = @ratings
+      # redirect_to(sort: @sort, ratings: @ratings) and return
+    # end
 
   end
 
